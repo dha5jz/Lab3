@@ -2,16 +2,26 @@ package com.example.lab3;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.ContextMenu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 
@@ -21,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText etSearch;
     private ListView lvContact;
     private Button btnThem, btnSua, btnXoa;
+    private int SelectedItemId;
     private Contact c;
     private int selectItemId;
 
@@ -29,11 +40,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Yêu cầu quyền truy cập vào bộ nhớ
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE},
+                    300);
+        }
         ContactList = new ArrayList<>();
-        ContactList.add(new Contact(1,"https://i.pinimg.com/originals/89/4f/15/894f156accbcbff8a5a406a1ba504bb8.jpg","Mot","123",false));
-        ContactList.add(new Contact(2,"https://i.pinimg.com/originals/c1/61/c8/c161c8eb9755205f66a499c50d807ead.jpg","Hai","234",false));
-        ContactList.add(new Contact(3,"https://i.pinimg.com/originals/ce/43/c3/ce43c38ad60db6bbda8f74279887105c.jpg","Ba","345",true));
+        ContactList.add(new Contact(1,"https://i.pinimg.com/originals/89/4f/15/894f156accbcbff8a5a406a1ba504bb8.jpg","Mot","mot@gmail.com","123",false));
+        ContactList.add(new Contact(2,"https://i.pinimg.com/originals/c1/61/c8/c161c8eb9755205f66a499c50d807ead.jpg","Hai","hai@gmail.com","234",false));
+        ContactList.add(new Contact(3,"https://i.pinimg.com/originals/ce/43/c3/ce43c38ad60db6bbda8f74279887105c.jpg","Ba","ba@gmail.com","345",true));
         ListAdapter = new Adapter(ContactList,this);
         lvContact = findViewById(R.id.main_lview);
         lvContact.setAdapter(ListAdapter);
@@ -42,6 +59,15 @@ public class MainActivity extends AppCompatActivity {
         btnThem = findViewById(R.id.main_btnAdd);
         btnSua = findViewById(R.id.main_btnEdit);
         btnXoa = findViewById(R.id.main_btnDelete);
+
+        lvContact.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                SelectedItemId = position;
+                Log.d("long", "onItemLongClick: " );
+                return false;
+            }
+        });
 
         btnThem.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -109,6 +135,46 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        Log.d("MainActivity", "onCreateContextMenu called");
+        super.onCreateContextMenu(menu, v, menuInfo);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.contextmenu,menu);
+    }
+
+    @Override
+    public boolean onContextItemSelected(@NonNull MenuItem item) {
+        Contact c = ContactList.get(SelectedItemId);
+        if(item.getItemId()== R.id.mnuEdit){
+            Intent intent = new Intent(MainActivity.this, SubActivity.class);
+            Bundle b = new Bundle();
+            b.putInt("Id",c.getId());
+            b.putString("Name",c.getName());
+            b.putString("Phone",c.getPhone());
+            b.putString("Email",c.getEmail());
+            b.putString("Image",c.getImages());
+            b.putBoolean("Status",c.getStatus());
+            intent.putExtras(b);
+            startActivityForResult(intent,200);
+        } else if (item.getItemId()== R.id.mnuCall) {
+            Intent in = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + c.getPhone()));
+            startActivity(in);
+        }
+        else if(item.getItemId()==R.id.mnuSms){
+            Intent in = new Intent(Intent.ACTION_SENDTO, Uri.parse("sms:" + c.getPhone()));
+            startActivity(in);
+        } else if (item.getItemId()==R.id.mnuEmail) {
+            Intent in = new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:" + c.getEmail()));
+            startActivity(in);
+        } else if (item.getItemId()==R.id.mnuFacebook) {
+            Intent in = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.facebook.com/"+ c.getName()));
+            startActivity(in);
+        }
+        return super.onContextItemSelected(item);
+
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
@@ -118,7 +184,8 @@ public class MainActivity extends AppCompatActivity {
             String name = b.getString("Name");
             String phone = b.getString("Phone");
             String image = b.getString("Image");
-            Contact newcontact = new Contact(id,image,name,phone,false);
+            String email = b.getString("Email");
+            Contact newcontact = new Contact(id,image,name,email,phone,false);
             //truong hop them
             ContactList.add(newcontact);
             ListAdapter.notifyDataSetChanged();

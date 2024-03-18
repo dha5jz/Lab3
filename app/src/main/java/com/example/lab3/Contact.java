@@ -6,6 +6,15 @@ public class Contact {
     private String name;
     private String phone;
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        email = email;
+    }
+
+    private String email;
 
     public Boolean getStatus() {
         return status;
@@ -19,11 +28,12 @@ public class Contact {
     public Contact(){}
 
 
-    public Contact(int id, String images, String name, String phone, Boolean status) {
+    public Contact(int id, String images, String name,String email, String phone, Boolean status) {
         this.id = id;
         this.images = images;
         this.name = name;
         this.phone = phone;
+        this.email = email;
         this.status = status;
     }
 
